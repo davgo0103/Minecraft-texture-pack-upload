@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft 材質包上傳</title>
+    <style>
+        body {
+            font-family: '微軟正黑體', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+        }
+        input[type="file"],
+        input[type="password"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+        .success {
+            background-color: #dff0d8;
+            color: #3c763d;
+            border: 1px solid #d6e9c6;
+        }
+        .error {
+            background-color: #f2dede;
+            color: #a94442;
+            border: 1px solid #ebccd1;
+        }
+        .download-section {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e7f3fe;
+            border-radius: 4px;
+        }
+        .file-info {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        #downloadButton {
+            background-color: #2196F3;
+            margin-top: 10px;
+        }
+        #downloadButton:hover {
+            background-color: #1976D2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Minecraft 材質包上傳系統</h1>
+        
+        <form id="uploadForm">
+            <div class="form-group">
+                <label for="texturepack">選擇材質包檔案（僅支援 .zip 格式）：</label>
+                <input type="file" id="texturepack" name="texturepack" accept=".zip" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">上傳密碼：</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            
+            <button type="submit" id="uploadButton">上傳材質包</button>
+        </form>
+
+        <div id="message" class="message"></div>
+
+        <div class="download-section">
+            <h3>下載材質包</h3>
+            <div id="fileInfo" class="file-info">
+                正在檢查材質包狀態...
+            </div>
+            <button id="downloadButton" style="display: none">下載最新材質包</button>
+        </div>
+    </div>
+
+    <script>
+        const uploadForm = document.getElementById('uploadForm');
+        const fileInput = document.getElementById('texturepack');
+        const passwordInput = document.getElementById('password');
+        const messageDiv = document.getElementById('message');
+        const uploadButton = document.getElementById('uploadButton');
+        const downloadButton = document.getElementById('downloadButton');
+        const fileInfo = document.getElementById('fileInfo');
+
+        // 檢查材質包狀態
+        async function checkTexturePack() {
+            try {
+                const response = await fetch('/check-texture-pack');
+                const data = await response.json();
+                
+                if (data.exists) {
+                    const lastModified = new Date(data.lastModified).toLocaleString();
+                    const size = (data.size / 1024 / 1024).toFixed(2);
+                    fileInfo.textContent = `目前的材質包大小：${size} MB，最後更新時間：${lastModified}`;
+                    downloadButton.style.display = 'block';
+                } else {
+                    fileInfo.textContent = '目前還沒有上傳的材質包';
+                    downloadButton.style.display = 'none';
+                }
+            } catch (error) {
+                fileInfo.textContent = '無法檢查材質包狀態';
+                downloadButton.style.display = 'none';
+            }
+        }
+
+        // 初始檢查
+        checkTexturePack();
+
+        // 處理上傳
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            uploadButton.disabled = true;
+            uploadButton.textContent = '上傳中...';
+            
+            const formData = new FormData();
+            formData.append('texturepack', fileInput.files[0]);
+            formData.append('password', passwordInput.value);
+            
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                messageDiv.style.display = 'block';
+                if (response.ok) {
+                    messageDiv.className = 'message success';
+                    messageDiv.textContent = data.message;
+                    fileInput.value = '';
+                    passwordInput.value = '';
+                    checkTexturePack(); // 重新檢查材質包狀態
+                } else {
+                    messageDiv.className = 'message error';
+                    messageDiv.textContent = data.error;
+                }
+            } catch (error) {
+                messageDiv.style.display = 'block';
+                messageDiv.className = 'message error';
+                messageDiv.textContent = '上傳過程發生錯誤，請稍後再試。';
+            } finally {
+                uploadButton.disabled = false;
+                uploadButton.textContent = '上傳材質包';
+            }
+        });
+
+        // 處理下載
+        downloadButton.addEventListener('click', () => {
+            window.location.href = '/download-texture-pack';
+        });
+    </script>
+</body>
+</html> 
