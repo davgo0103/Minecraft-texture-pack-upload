@@ -37,7 +37,7 @@ const MAX_ATTEMPTS = 5;
 const BLOCK_TIME = 10 * 60 * 1000; // 10 分鐘
 
 function checkBlockMiddleware(req, res, next) {
-    const ip = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for']?.split(',').shift() || req.ip;
+    const ip = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for']?.split(',').shift() || req.headers['cf-pseudo-ipv4'] || req.ip;
     const now = Date.now();
     if (loginAttempts[ip] && loginAttempts[ip].blockedUntil > now) {
         const waitSec = Math.ceil((loginAttempts[ip].blockedUntil - now) / 1000);
@@ -69,6 +69,16 @@ function passwordCheckMiddleware(req, res, next) {
 const verifyAttempts = {};
 const VERIFY_MAX_ATTEMPTS = 3;
 const VERIFY_BLOCK_TIME = 30 * 60 * 1000; // 30分鐘
+
+// 全域請求紀錄 middleware
+app.use((req, res, next) => {
+    const ip = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for']?.split(',').shift() || req.headers['cf-pseudo-ipv4'] || req.ip;
+    const now = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });
+    const ua = req.headers['user-agent'] || '';
+    console.log(`[訪問紀錄] ${now} | IP: ${ip} | ${req.method} ${req.originalUrl} | UA: ${ua}`);
+    // console.log('[Header Debug]', req.headers); // 已關閉 header debug 輸出
+    next();
+});
 
 // 路由
 app.get('/', (req, res) => {
@@ -114,7 +124,7 @@ app.get('/download-texture-pack', (req, res) => {
 // 密碼驗證 API，僅驗證密碼，並加上3次錯誤封鎖30分鐘
 app.post('/verify-password', express.json(), async (req, res) => {
     const { password } = req.body;
-    const ip = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for']?.split(',').shift() || req.ip;
+    const ip = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for']?.split(',').shift() || req.headers['cf-pseudo-ipv4'] || req.ip;
     const now = Date.now();
 
     // 初始化
@@ -126,6 +136,7 @@ app.post('/verify-password', express.json(), async (req, res) => {
     if (verifyAttempts[ip].blockedUntil > now) {
         const waitSec = Math.ceil((verifyAttempts[ip].blockedUntil - now) / 1000);
         const waitMin = Math.ceil(waitSec / 60);
+        console.log(`[密碼驗證][BLOCKED] IP: ${ip}, 次數: ${verifyAttempts[ip].count}, 封鎖剩餘: ${waitMin} 分鐘`);
         return res.status(429).json({ error: `密碼錯誤次數過多，請於 ${waitMin} 分鐘後再試。` });
     }
 
@@ -142,11 +153,14 @@ app.post('/verify-password', express.json(), async (req, res) => {
         verifyAttempts[ip].count += 1;
         if (verifyAttempts[ip].count >= VERIFY_MAX_ATTEMPTS) {
             verifyAttempts[ip].blockedUntil = now + VERIFY_BLOCK_TIME;
+            console.log(`[密碼驗證][BLOCK] IP: ${ip}, 達到上限，封鎖 30 分鐘`);
             return res.status(429).json({ error: `密碼錯誤次數過多，請於 ${VERIFY_BLOCK_TIME / 60000} 分鐘後再試。` });
         }
+        console.log(`[密碼驗證][FAIL] IP: ${ip}, 次數: ${verifyAttempts[ip].count}`);
         return res.status(401).json({ error: '密碼錯誤' });
     } else {
         // 驗證成功自動清除紀錄
+        console.log(`[密碼驗證][SUCCESS] IP: ${ip}, 驗證成功`);
         delete verifyAttempts[ip];
     }
     res.json({ message: '密碼正確' });
@@ -157,7 +171,7 @@ app.post('/upload', checkBlockMiddleware, upload, async (req, res) => {
     try {
         // 1. 先驗證密碼
         const password = req.body.password;
-        const ip = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for']?.split(',').shift() || req.ip;
+        const ip = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for']?.split(',').shift() || req.headers['cf-pseudo-ipv4'] || req.ip;
         const now = Date.now();
         if (!password) {
             return res.status(400).json({ error: '請提供密碼' });
