@@ -11,8 +11,10 @@
   "description": "",
   "dependencies": {
     "bcryptjs": "^3.0.2",
+    "crypto": "^1.0.1",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
+    "helmet": "^8.1.0",
     "multer": "^2.0.1"
   }
 }
