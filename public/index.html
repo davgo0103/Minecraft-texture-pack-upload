@@ -4,119 +4,266 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minecraft 材質包上傳</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --container-bg: #2d2d2d;
+            --text-color: #e0e0e0;
+            --border-color: #404040;
+            --accent-color: #4CAF50;
+            --accent-hover: #45a049;
+            --error-bg: #2c1515;
+            --error-border: #4c2020;
+            --error-text: #ff4444;
+            --success-bg: #1c2c1c;
+            --success-border: #2c4c2c;
+            --success-text: #4CAF50;
+            --download-bg: #1c2c3c;
+            --input-bg: #333333;
+        }
+
+        * {
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
         body {
             font-family: '微軟正黑體', sans-serif;
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #f0f0f0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
         }
+
         .container {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background-color: var(--container-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            animation: fadeIn 0.5s ease;
         }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         h1 {
-            color: #333;
+            color: var(--text-color);
             text-align: center;
+            margin-bottom: 30px;
+            font-size: 2em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
         }
+
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
         }
+
         label {
             display: block;
-            margin-bottom: 5px;
-            color: #666;
+            margin-bottom: 8px;
+            color: var(--text-color);
+            font-weight: 500;
         }
+
         input[type="file"],
         input[type="password"] {
             width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            font-size: 16px;
         }
-        button {
-            background-color: #4CAF50;
+
+        input[type="file"] {
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        input[type="file"]::-webkit-file-upload-button {
+            background-color: var(--accent-color);
             color: white;
-            padding: 10px 20px;
+            padding: 8px 16px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            margin-right: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        input[type="file"]::-webkit-file-upload-button:hover {
+            background-color: var(--accent-hover);
+        }
+
+        button {
+            background-color: var(--accent-color);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
             width: 100%;
             font-size: 16px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
         }
+
         button:hover {
-            background-color: #45a049;
+            background-color: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
+
         button:disabled {
-            background-color: #cccccc;
+            background-color: var(--border-color);
             cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
+
         .message {
             margin-top: 20px;
-            padding: 10px;
-            border-radius: 4px;
-            display: none;
-        }
-        .success {
-            background-color: #dff0d8;
-            color: #3c763d;
-            border: 1px solid #d6e9c6;
-        }
-        .error {
-            background-color: #f2dede;
-            color: #a94442;
-            border: 1px solid #ebccd1;
-        }
-        .download-section {
-            margin-top: 20px;
             padding: 15px;
-            background-color: #e7f3fe;
-            border-radius: 4px;
+            border-radius: 6px;
+            display: none;
+            animation: slideIn 0.3s ease;
         }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .success {
+            background-color: var(--success-bg);
+            color: var(--success-text);
+            border: 1px solid var(--success-border);
+        }
+
+        .error {
+            background-color: var(--error-bg);
+            color: var(--error-text);
+            border: 1px solid var(--error-border);
+        }
+
+        .download-section {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: var(--download-bg);
+            border-radius: 8px;
+            animation: fadeIn 0.5s ease;
+        }
+
         .file-info {
-            margin-top: 10px;
-            font-size: 0.9em;
-            color: #666;
+            margin: 15px 0;
+            font-size: 0.95em;
+            color: var(--text-color);
+            opacity: 0.9;
         }
+
         #downloadButton {
             background-color: #2196F3;
-            margin-top: 10px;
+            margin-top: 15px;
         }
+
         #downloadButton:hover {
             background-color: #1976D2;
+        }
+
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .icon {
+            margin-right: 8px;
+        }
+
+        /* 響應式設計 */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Minecraft 材質包上傳系統</h1>
+        <h1>
+            <i class="fas fa-cube icon"></i>
+            Minecraft 材質包上傳
+        </h1>
         
         <form id="uploadForm">
             <div class="form-group">
-                <label for="texturepack">選擇材質包檔案（僅支援 .zip 格式）：</label>
+                <label for="texturepack">
+                    <i class="fas fa-file-archive icon"></i>
+                    選擇材質包檔案（僅支援 .zip 格式）：
+                </label>
                 <input type="file" id="texturepack" name="texturepack" accept=".zip" required>
             </div>
             
             <div class="form-group">
-                <label for="password">上傳密碼：</label>
+                <label for="password">
+                    <i class="fas fa-lock icon"></i>
+                    上傳密碼：
+                </label>
                 <input type="password" id="password" name="password" required>
             </div>
             
-            <button type="submit" id="uploadButton">上傳材質包</button>
+            <button type="submit" id="uploadButton">
+                <div class="loading-spinner"></div>
+                <i class="fas fa-upload icon"></i>
+                <span>上傳材質包</span>
+            </button>
         </form>
 
         <div id="message" class="message"></div>
 
         <div class="download-section">
-            <h3>下載材質包</h3>
+            <h3>
+                <i class="fas fa-download icon"></i>
+                下載材質包
+            </h3>
             <div id="fileInfo" class="file-info">
+                <i class="fas fa-spinner fa-spin icon"></i>
                 正在檢查材質包狀態...
             </div>
-            <button id="downloadButton" style="display: none">下載最新材質包</button>
+            <button id="downloadButton" style="display: none">
+                <i class="fas fa-download icon"></i>
+                下載最新材質包
+            </button>
         </div>
     </div>
 
@@ -128,6 +275,7 @@
         const uploadButton = document.getElementById('uploadButton');
         const downloadButton = document.getElementById('downloadButton');
         const fileInfo = document.getElementById('fileInfo');
+        const loadingSpinner = document.querySelector('.loading-spinner');
 
         // 檢查材質包狀態
         async function checkTexturePack() {
@@ -138,14 +286,24 @@
                 if (data.exists) {
                     const lastModified = new Date(data.lastModified).toLocaleString();
                     const size = (data.size / 1024 / 1024).toFixed(2);
-                    fileInfo.textContent = `目前的材質包大小：${size} MB，最後更新時間：${lastModified}`;
+                    fileInfo.innerHTML = `
+                        <i class="fas fa-info-circle icon"></i>
+                        目前的材質包大小：${size} MB<br>
+                        最後更新時間：${lastModified}
+                    `;
                     downloadButton.style.display = 'block';
                 } else {
-                    fileInfo.textContent = '目前還沒有上傳的材質包';
+                    fileInfo.innerHTML = `
+                        <i class="fas fa-exclamation-circle icon"></i>
+                        目前還沒有上傳的材質包
+                    `;
                     downloadButton.style.display = 'none';
                 }
             } catch (error) {
-                fileInfo.textContent = '無法檢查材質包狀態';
+                fileInfo.innerHTML = `
+                    <i class="fas fa-times-circle icon"></i>
+                    無法檢查材質包狀態
+                `;
                 downloadButton.style.display = 'none';
             }
         }
@@ -157,7 +315,10 @@
         uploadForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             uploadButton.disabled = true;
-            uploadButton.textContent = '上傳中...';
+            loadingSpinner.style.display = 'block';
+            uploadButton.querySelector('.fa-upload').style.display = 'none';
+            uploadButton.querySelector('span').textContent = '上傳中...';
+            messageDiv.style.display = 'none'; // 清除之前的訊息
             
             const formData = new FormData();
             formData.append('texturepack', fileInput.files[0]);
@@ -174,27 +335,47 @@
                 messageDiv.style.display = 'block';
                 if (response.ok) {
                     messageDiv.className = 'message success';
-                    messageDiv.textContent = data.message;
+                    messageDiv.innerHTML = `
+                        <i class="fas fa-check-circle icon"></i>
+                        ${data.message}
+                    `;
                     fileInput.value = '';
                     passwordInput.value = '';
-                    checkTexturePack(); // 重新檢查材質包狀態
+                    checkTexturePack();
                 } else {
                     messageDiv.className = 'message error';
-                    messageDiv.textContent = data.error;
+                    messageDiv.innerHTML = `
+                        <i class="fas fa-times-circle icon"></i>
+                        ${data.error}
+                    `;
                 }
             } catch (error) {
                 messageDiv.style.display = 'block';
                 messageDiv.className = 'message error';
-                messageDiv.textContent = '上傳過程發生錯誤，請稍後再試。';
+                messageDiv.innerHTML = `
+                    <i class="fas fa-times-circle icon"></i>
+                    上傳過程發生錯誤，請稍後再試。
+                `;
             } finally {
                 uploadButton.disabled = false;
-                uploadButton.textContent = '上傳材質包';
+                loadingSpinner.style.display = 'none';
+                uploadButton.querySelector('.fa-upload').style.display = 'inline';
+                uploadButton.querySelector('span').textContent = '上傳材質包';
             }
         });
 
         // 處理下載
         downloadButton.addEventListener('click', () => {
             window.location.href = '/download-texture-pack';
+        });
+
+        // 添加檔案選擇動畫
+        fileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                this.parentElement.classList.add('has-file');
+            } else {
+                this.parentElement.classList.remove('has-file');
+            }
         });
     </script>
 </body>
