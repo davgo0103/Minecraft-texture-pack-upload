@@ -111,6 +111,7 @@ app.post('/verify-password', express.json(), async (req, res) => {
     if (!authAttempts[ip]) authAttempts[ip] = { count: 0, blockedUntil: 0 };
     if (authAttempts[ip].blockedUntil > now) {
         const waitMin = Math.ceil((authAttempts[ip].blockedUntil - now) / 60000);
+        console.log(`[密碼驗證][BLOCKED] IP: ${ip}, 次數: ${authAttempts[ip].count}, 封鎖剩餘: ${waitMin} 分鐘`);
         return res.status(429).json({ error: `密碼錯誤次數過多，請於 ${waitMin} 分鐘後再試。` });
     }
 
@@ -122,12 +123,16 @@ app.post('/verify-password', express.json(), async (req, res) => {
         authAttempts[ip].count += 1;
         if (authAttempts[ip].count >= MAX_ATTEMPTS) {
             authAttempts[ip].blockedUntil = now + BLOCK_TIME;
+            console.log(`[密碼驗證][BLOCK] IP: ${ip}, 達到上限，封鎖 30 分鐘`);
             return res.status(429).json({ error: `密碼錯誤次數過多，請於 ${BLOCK_TIME / 60000} 分鐘後再試。` });
         }
+        console.log(`[密碼驗證][FAIL] IP: ${ip}, 次數: ${authAttempts[ip].count}`);
         return res.status(401).json({ error: '密碼錯誤' });
     }
 
     delete authAttempts[ip];
+
+    console.log(`[密碼驗證][SUCCESS] IP: ${ip}, 驗證成功`);
     res.json({ message: '密碼正確' });
 });
 
