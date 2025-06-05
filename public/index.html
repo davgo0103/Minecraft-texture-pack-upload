@@ -247,6 +247,15 @@
                 </label>
                 <input type="file" id="texturepack" name="texturepack" accept=".zip" required>
             </div>
+            <div class="form-group" id="progressGroup" style="display:none;">
+                <label>
+                    <i class="fas fa-tasks icon"></i>
+                    上傳進度：
+                </label>
+                <div style="background:#333;height:18px;border-radius:6px;overflow:hidden;">
+                    <div id="progressBar" style="height:18px;width:0%;background:#4CAF50;text-align:center;color:#fff;font-size:13px;line-height:18px;transition:width 0.2s;"></div>
+                </div>
+            </div>
             <button type="submit" id="uploadButton">
                 <div class="loading-spinner"></div>
                 <i class="fas fa-upload icon"></i>
@@ -283,6 +292,8 @@
         const downloadButton = document.getElementById('downloadButton');
         const fileInfo = document.getElementById('fileInfo');
         const loadingSpinner = document.querySelector('.loading-spinner');
+        const progressGroup = document.getElementById('progressGroup');
+        const progressBar = document.getElementById('progressBar');
 
         let passwordVerified = false;
         let verifiedPassword = '';
@@ -391,17 +402,37 @@
             uploadButton.querySelector('.fa-upload').style.display = 'none';
             uploadButton.querySelector('span').textContent = '上傳中...';
             messageDiv.style.display = 'none';
+            progressGroup.style.display = 'block';
+            progressBar.style.width = '0%';
+            progressBar.textContent = '';
+
             const formData = new FormData();
             formData.append('texturepack', fileInput.files[0]);
             formData.append('password', verifiedPassword); // 仍帶密碼給後端二次驗證
-            try {
-                const response = await fetch('/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await response.json();
+
+            // 用 XMLHttpRequest 來顯示進度條
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/upload');
+
+            xhr.upload.onprogress = function(event) {
+                if (event.lengthComputable) {
+                    const percent = Math.round((event.loaded / event.total) * 100);
+                    progressBar.style.width = percent + '%';
+                    progressBar.textContent = percent + '%';
+                }
+            };
+
+            xhr.onload = function() {
+                uploadButton.disabled = false;
+                loadingSpinner.style.display = 'none';
+                uploadButton.querySelector('.fa-upload').style.display = 'inline';
+                uploadButton.querySelector('span').textContent = '上傳材質包';
+                progressBar.style.width = '100%';
+                setTimeout(() => { progressGroup.style.display = 'none'; }, 1000);
+                let data = {};
+                try { data = JSON.parse(xhr.responseText); } catch {}
                 messageDiv.style.display = 'block';
-                if (response.ok) {
+                if (xhr.status >= 200 && xhr.status < 300) {
                     messageDiv.className = 'message success';
                     messageDiv.innerHTML = `
                         <i class="fas fa-check-circle icon"></i>
@@ -424,19 +455,23 @@
                         ${errorMsg}
                     `;
                 }
-            } catch (error) {
+            };
+
+            xhr.onerror = function() {
+                uploadButton.disabled = false;
+                loadingSpinner.style.display = 'none';
+                uploadButton.querySelector('.fa-upload').style.display = 'inline';
+                uploadButton.querySelector('span').textContent = '上傳材質包';
+                progressGroup.style.display = 'none';
                 messageDiv.style.display = 'block';
                 messageDiv.className = 'message error';
                 messageDiv.innerHTML = `
                     <i class="fas fa-times-circle icon"></i>
                     上傳過程發生錯誤，請稍後再試。
                 `;
-            } finally {
-                uploadButton.disabled = false;
-                loadingSpinner.style.display = 'none';
-                uploadButton.querySelector('.fa-upload').style.display = 'inline';
-                uploadButton.querySelector('span').textContent = '上傳材質包';
-            }
+            };
+
+            xhr.send(formData);
         });
 
         // 處理下載
