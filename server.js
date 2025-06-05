@@ -111,6 +111,8 @@ app.get('/download-texture-pack', (req, res) => {
     try {
         const texturePath = path.join(uploadDir, 'texture-pack.zip');
         if (fs.existsSync(texturePath)) {
+            // 快取 1 分鐘
+            res.setHeader('Cache-Control', 'public, max-age=60, must-revalidate');
             res.download(texturePath, 'minecraft-texture-pack.zip');
         } else {
             res.status(404).json({ error: '找不到材質包檔案' });
