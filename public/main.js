@@ -10,53 +10,108 @@ const fileInfo = document.getElementById('fileInfo');
 const loadingSpinner = document.querySelector('.loading-spinner');
 const progressGroup = document.getElementById('progressGroup');
 const progressBar = document.getElementById('progressBar');
+const packSelect = document.getElementById('packSelect');
+const customPackName = document.getElementById('customPackName');
+const downloadPackSelect = document.getElementById('downloadPackSelect');
 
 let passwordVerified = false;
 let verifiedPassword = '';
+let currentUploadPack = '';
+let currentDownloadPack = '';
 
-// 檢查材質包狀態
-async function checkTexturePack() {
-    try {
-        const response = await fetch('/check-texture-pack');
-        const data = await response.json();
-        
-        if (data.exists) {
-            const lastModified = new Date(data.lastModified).toLocaleString();
-            const size = (data.size / 1024 / 1024).toFixed(2);
-            let sha256Html = '';
-            if (data.sha256) {
-                sha256Html = `
-                    <div style="margin-top:8px;">
-                        <b>SHA256：</b>
-                        <span id="sha256-hash" style="word-break:break-all;">${data.sha256}</span>
-                    </div>
-                `;
-            }
-            fileInfo.innerHTML = `
-                <i class="fas fa-info-circle icon"></i>
-                目前的材質包大小：${size} MB<br>
-                最後更新時間：${lastModified}
-                ${sha256Html}
-            `;
-            downloadButton.style.display = 'block';
-        } else {
-            fileInfo.innerHTML = `
-                <i class="fas fa-exclamation-circle icon"></i>
-                目前還沒有上傳的材質包
-            `;
-            downloadButton.style.display = 'none';
-        }
-    } catch (error) {
-        fileInfo.innerHTML = `
-            <i class="fas fa-times-circle icon"></i>
-            無法檢查材質包狀態
-        `;
+// 取得所有包名並填充下拉選單
+async function loadPackList() {
+    const res = await fetch('/list-packs');
+    const data = await res.json();
+    const packs = data.packs || [];
+    // 上傳下拉選單
+    packSelect.innerHTML = '<option value="" disabled selected>請選擇或自訂名稱</option>';
+    packs.forEach(pack => {
+        packSelect.innerHTML += `<option value="${pack}">${pack}</option>`;
+    });
+    packSelect.innerHTML += '<option value="__custom__">自訂名稱...</option>';
+    // 下載下拉選單
+    downloadPackSelect.innerHTML = '<option value="" disabled selected>請選擇</option>';
+    packs.forEach(pack => {
+        downloadPackSelect.innerHTML += `<option value="${pack}">${pack}</option>`;
+    });
+    // 預設選第一個
+    if (packs.length > 0) {
+        packSelect.value = packs[0];
+        downloadPackSelect.value = packs[0];
+        currentUploadPack = packs[0];
+        currentDownloadPack = packs[0];
+        checkTexturePack();
+    } else {
+        packSelect.value = '';
+        downloadPackSelect.value = '';
+        currentUploadPack = '';
+        currentDownloadPack = '';
+        fileInfo.innerHTML = '<i class="fas fa-exclamation-circle icon"></i> 目前還沒有上傳的材質包';
         downloadButton.style.display = 'none';
     }
 }
 
-// 初始檢查
-checkTexturePack();
+// 監聽上傳下拉選單，切換自訂名稱欄位
+packSelect.addEventListener('change', function() {
+    if (this.value === '__custom__') {
+        customPackName.style.display = 'block';
+        currentUploadPack = '';
+    } else {
+        customPackName.style.display = 'none';
+        currentUploadPack = this.value;
+    }
+});
+
+// 監聽自訂名稱輸入
+customPackName.addEventListener('input', function() {
+    const val = this.value.trim();
+    if (/^[a-zA-Z0-9_]{1,32}$/.test(val)) {
+        currentUploadPack = val;
+        this.style.borderColor = '';
+    } else {
+        currentUploadPack = '';
+        this.style.borderColor = 'red';
+    }
+});
+
+// 監聽下載下拉選單
+downloadPackSelect.addEventListener('change', function() {
+    currentDownloadPack = this.value;
+    checkTexturePack();
+});
+
+// 檢查材質包狀態
+async function checkTexturePack() {
+    if (!currentDownloadPack) {
+        fileInfo.innerHTML = '<i class="fas fa-exclamation-circle icon"></i> 目前還沒有上傳的材質包';
+        downloadButton.style.display = 'none';
+        return;
+    }
+    try {
+        const response = await fetch(`/check-texture-pack/${encodeURIComponent(currentDownloadPack)}`);
+        const data = await response.json();
+        if (data.exists) {
+            const lastModified = new Date(data.lastModified).toLocaleString();
+            const size = (data.size / 1024 / 1024).toFixed(2);
+            let sha1Html = '';
+            if (data.sha1) {
+                sha1Html = `<div class="sha1-block" id="sha1-hash" title="點擊複製">${data.sha1}</div>`;
+            }
+            fileInfo.innerHTML = `<i class="fas fa-info-circle icon"></i> 目前的材質包大小：${size} MB<br>最後更新時間：${lastModified}${sha1Html}`;
+            downloadButton.style.display = 'block';
+        } else {
+            fileInfo.innerHTML = '<i class="fas fa-exclamation-circle icon"></i> 目前還沒有上傳的材質包';
+            downloadButton.style.display = 'none';
+        }
+    } catch (error) {
+        fileInfo.innerHTML = '<i class="fas fa-times-circle icon"></i> 無法檢查材質包狀態';
+        downloadButton.style.display = 'none';
+    }
+}
+
+// 初始載入
+loadPackList();
 
 // 密碼驗證流程
 passwordForm.addEventListener('submit', async (e) => {
@@ -123,6 +178,12 @@ fileInput.addEventListener('change', function() {
 uploadForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!passwordVerified) return;
+    if (!currentUploadPack) {
+        messageDiv.style.display = 'block';
+        messageDiv.className = 'message error';
+        messageDiv.innerHTML = `<i class='fas fa-times-circle icon'></i> 請選擇或輸入正確的材質包名稱`;
+        return;
+    }
     uploadButton.disabled = true;
     loadingSpinner.style.display = 'block';
     uploadButton.querySelector('.fa-upload').style.display = 'none';
@@ -134,11 +195,10 @@ uploadForm.addEventListener('submit', async (e) => {
 
     const formData = new FormData();
     formData.append('texturepack', fileInput.files[0]);
-    formData.append('password', verifiedPassword); // 仍帶密碼給後端二次驗證
+    formData.append('password', verifiedPassword);
 
-    // 用 XMLHttpRequest 來顯示進度條
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', '/upload');
+    xhr.open('POST', `/upload/${encodeURIComponent(currentUploadPack)}`);
 
     xhr.upload.onprogress = function(event) {
         if (event.lengthComputable) {
@@ -160,12 +220,9 @@ uploadForm.addEventListener('submit', async (e) => {
         messageDiv.style.display = 'block';
         if (xhr.status >= 200 && xhr.status < 300) {
             messageDiv.className = 'message success';
-            messageDiv.innerHTML = `
-                <i class="fas fa-check-circle icon"></i>
-                ${data.message}
-            `;
+            messageDiv.innerHTML = `<i class="fas fa-check-circle icon"></i> ${data.message}`;
             fileInput.value = '';
-            checkTexturePack();
+            loadPackList();
         } else {
             messageDiv.className = 'message error';
             let errorMsg = data.error || '上傳過程發生錯誤，請稍後再試。';
@@ -176,10 +233,7 @@ uploadForm.addEventListener('submit', async (e) => {
             } else if (errorMsg.includes('檔案大小')) {
                 errorMsg = '檔案大小不能超過 50MB';
             }
-            messageDiv.innerHTML = `
-                <i class="fas fa-times-circle icon"></i>
-                ${errorMsg}
-            `;
+            messageDiv.innerHTML = `<i class="fas fa-times-circle icon"></i> ${errorMsg}`;
         }
     };
 
@@ -191,10 +245,7 @@ uploadForm.addEventListener('submit', async (e) => {
         progressGroup.style.display = 'none';
         messageDiv.style.display = 'block';
         messageDiv.className = 'message error';
-        messageDiv.innerHTML = `
-            <i class="fas fa-times-circle icon"></i>
-            上傳過程發生錯誤，請稍後再試。
-        `;
+        messageDiv.innerHTML = `<i class="fas fa-times-circle icon"></i> 上傳過程發生錯誤，請稍後再試。`;
     };
 
     xhr.send(formData);
@@ -202,5 +253,16 @@ uploadForm.addEventListener('submit', async (e) => {
 
 // 處理下載
 downloadButton.addEventListener('click', () => {
-    window.location.href = '/download-texture-pack';
+    if (!currentDownloadPack) return;
+    window.location.href = `/download-texture-pack/${encodeURIComponent(currentDownloadPack)}`;
+});
+
+// SHA1 點擊複製
+document.addEventListener('click', function(e) {
+    if (e.target && e.target.id === 'sha1-hash') {
+        const text = e.target.textContent;
+        navigator.clipboard.writeText(text);
+        e.target.innerText = '已複製！';
+        setTimeout(() => { e.target.innerText = text; }, 1200);
+    }
 });

@@ -7,12 +7,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
-            --bg-color: #1a1a1a;
-            --container-bg: #2d2d2d;
+            --bg-color: #181c1b;
+            --container-bg: #232b27;
             --text-color: #e0e0e0;
-            --border-color: #404040;
+            --border-color: #3a4a3c;
             --accent-color: #4CAF50;
-            --accent-hover: #45a049;
+            --accent-hover: #388e3c;
             --error-bg: #2c1515;
             --error-border: #4c2020;
             --error-text: #ff4444;
@@ -20,7 +20,10 @@
             --success-border: #2c4c2c;
             --success-text: #4CAF50;
             --download-bg: #1c2c3c;
-            --input-bg: #333333;
+            --input-bg: #2a2f2b;
+            --sha-bg: #222c22;
+            --sha-text: #b2ffb2;
+            --divider: #2e3d34;
         }
 
         * {
@@ -29,20 +32,22 @@
         }
 
         body {
-            font-family: '微軟正黑體', sans-serif;
+            font-family: '微軟正黑體', 'Segoe UI', 'Consolas', sans-serif;
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
             background-color: var(--bg-color);
             color: var(--text-color);
-            line-height: 1.6;
+            line-height: 1.7;
         }
 
         .container {
             background-color: var(--container-bg);
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            padding: 32px 32px 24px 32px;
+            border-radius: 16px;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+            margin-top: 32px;
+            margin-bottom: 32px;
             animation: fadeIn 0.5s ease;
         }
 
@@ -52,17 +57,28 @@
         }
 
         h1 {
-            color: var(--text-color);
+            color: #b2ffb2;
             text-align: center;
-            margin-bottom: 30px;
-            font-size: 2em;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            margin-bottom: 32px;
+            font-size: 2.2em;
+            letter-spacing: 2px;
+            text-shadow: 2px 2px 8px #000a, 0 0 2px #4CAF50;
+            border-bottom: 2px solid var(--divider);
+            padding-bottom: 12px;
+        }
+
+        h3 {
+            color: #90caf9;
+            font-size: 1.3em;
+            margin-bottom: 18px;
+            border-left: 4px solid #2196F3;
+            padding-left: 10px;
+            letter-spacing: 1px;
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 22px;
             position: relative;
-            overflow: hidden;
         }
 
         label {
@@ -70,17 +86,23 @@
             margin-bottom: 8px;
             color: var(--text-color);
             font-weight: 500;
+            letter-spacing: 1px;
         }
 
         input[type="file"],
-        input[type="password"] {
+        input[type="password"],
+        input[type="text"],
+        select {
             width: 100%;
             padding: 12px;
             border: 2px solid var(--border-color);
-            border-radius: 6px;
+            border-radius: 8px;
             background-color: var(--input-bg);
             color: var(--text-color);
             font-size: 16px;
+            margin-bottom: 2px;
+            box-shadow: 0 2px 8px #0002;
+            transition: border 0.2s, box-shadow 0.2s;
         }
 
         input[type="file"] {
@@ -93,101 +115,130 @@
             color: white;
             padding: 8px 16px;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
             margin-right: 10px;
-            transition: background-color 0.3s ease;
+            font-weight: 500;
+            transition: background-color 0.3s;
         }
 
         input[type="file"]::-webkit-file-upload-button:hover {
             background-color: var(--accent-hover);
         }
 
+        select:focus, input:focus {
+            border-color: #90caf9;
+            outline: none;
+            box-shadow: 0 0 0 2px #2196f355;
+        }
+
         button {
-            background-color: var(--accent-color);
+            background: linear-gradient(90deg, var(--accent-color) 60%, #43e97b 100%);
             color: white;
-            padding: 12px 24px;
+            padding: 14px 0;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
             width: 100%;
-            font-size: 16px;
-            font-weight: 500;
+            font-size: 17px;
+            font-weight: 600;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            position: relative;
-            overflow: hidden;
+            gap: 10px;
+            box-shadow: 0 2px 8px #0002;
+            margin-top: 6px;
+            margin-bottom: 2px;
+            transition: background 0.2s, transform 0.2s;
         }
 
         button:hover {
-            background-color: var(--accent-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            background: linear-gradient(90deg, #43e97b 0%, var(--accent-hover) 100%);
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 6px 16px #0003;
         }
 
         button:disabled {
-            background-color: var(--border-color);
+            background: #3a4a3c;
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
         }
 
         .message {
-            margin-top: 20px;
+            margin-top: 18px;
             padding: 15px;
-            border-radius: 6px;
+            border-radius: 8px;
             display: none;
+            font-size: 1.08em;
             animation: slideIn 0.3s ease;
         }
 
         @keyframes slideIn {
-            from { opacity: 0; transform: translateX(-20px); }
-            to { opacity: 1; transform: translateX(0); }
+            from { opacity: 0; transform: translateX(-20px);}
+            to { opacity: 1; transform: translateX(0);}
         }
 
         .success {
             background-color: var(--success-bg);
             color: var(--success-text);
-            border: 1px solid var(--success-border);
+            border: 1.5px solid var(--success-border);
         }
 
         .error {
             background-color: var(--error-bg);
             color: var(--error-text);
-            border: 1px solid var(--error-border);
+            border: 1.5px solid var(--error-border);
         }
 
         .download-section {
-            margin-top: 30px;
-            padding: 20px;
+            margin-top: 36px;
+            padding: 28px 22px 22px 22px;
             background-color: var(--download-bg);
-            border-radius: 8px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px #0002;
             animation: fadeIn 0.5s ease;
         }
 
         .file-info {
-            margin: 15px 0;
-            font-size: 0.95em;
+            margin: 15px 0 0 0;
+            font-size: 1.05em;
             color: var(--text-color);
-            opacity: 0.9;
+            opacity: 0.93;
+            background: none;
         }
 
-        #downloadButton {
-            background-color: #2196F3;
-            margin-top: 15px;
+        .sha1-block {
+            background: var(--sha-bg);
+            color: var(--sha-text);
+            font-family: 'Consolas', 'Menlo', 'monospace';
+            padding: 7px 12px;
+            border-radius: 6px;
+            margin-top: 8px;
+            font-size: 1em;
+            letter-spacing: 1px;
+            user-select: all;
+            cursor: pointer;
+            display: inline-block;
+            border: 1px dashed #4CAF50;
+            transition: background 0.2s, border 0.2s;
         }
 
-        #downloadButton:hover {
-            background-color: #1976D2;
+        .sha1-block:hover {
+            background: #2e3d2e;
+            border: 1.5px solid #43e97b;
+        }
+
+        .divider {
+            border-bottom: 1.5px solid var(--divider);
+            margin: 28px 0 24px 0;
         }
 
         .loading-spinner {
             display: none;
             width: 20px;
             height: 20px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
+            border: 3px solid rgba(255,255,255,0.3);
             border-radius: 50%;
             border-top-color: white;
             animation: spin 1s linear infinite;
@@ -195,26 +246,21 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to { transform: rotate(360deg);}
         }
 
         .icon {
             margin-right: 8px;
+            opacity: 0.85;
+            font-size: 1.1em;
         }
 
         /* 響應式設計 */
         @media (max-width: 600px) {
-            body {
-                padding: 10px;
-            }
-            
-            .container {
-                padding: 20px;
-            }
-
-            h1 {
-                font-size: 1.5em;
-            }
+            body { padding: 6px;}
+            .container { padding: 12px;}
+            h1 { font-size: 1.2em;}
+            h3 { font-size: 1em;}
         }
     </style>
 </head>
@@ -238,8 +284,18 @@
                 驗證密碼
             </button>
         </form>
-
+        <div class="divider"></div>
         <form id="uploadForm" style="display:none;">
+            <div class="form-group">
+                <label for="packSelect">
+                    <i class="fas fa-server icon"></i>
+                    選擇材質包名稱：
+                </label>
+                <select id="packSelect" name="packSelect" required>
+                    <option value="" disabled selected>請選擇或自訂名稱</option>
+                </select>
+                <input type="text" id="customPackName" name="customPackName" placeholder="自訂名稱（僅限英文、數字、底線）" style="display:none;margin-top:10px;" maxlength="32" pattern="[a-zA-Z0-9_]{1,32}">
+            </div>
             <div class="form-group">
                 <label for="texturepack">
                     <i class="fas fa-file-archive icon"></i>
@@ -262,14 +318,22 @@
                 <span>上傳材質包</span>
             </button>
         </form>
-
         <div id="message" class="message"></div>
-
+        <div class="divider"></div>
         <div class="download-section">
             <h3>
                 <i class="fas fa-download icon"></i>
                 下載材質包
             </h3>
+            <div class="form-group">
+                <label for="downloadPackSelect">
+                    <i class="fas fa-server icon"></i>
+                    選擇材質包名稱：
+                </label>
+                <select id="downloadPackSelect" name="downloadPackSelect" required>
+                    <option value="" disabled selected>請選擇</option>
+                </select>
+            </div>
             <div id="fileInfo" class="file-info">
                 <i class="fas fa-spinner fa-spin icon"></i>
                 正在檢查材質包狀態...

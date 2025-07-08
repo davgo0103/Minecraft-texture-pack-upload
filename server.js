@@ -3,7 +3,7 @@ const multer = require('multer');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 const fs = require('fs');
-const helmet = require('helmet');
+// const helmet = require('helmet');
 const crypto = require('crypto');
 
 const app = express();
@@ -26,7 +26,7 @@ const upload = multer({
 }).single('texturepack');
 
 // 中間件
-app.use(helmet());
+// app.use(helmet());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
@@ -63,88 +63,95 @@ app.use((req, res, next) => {
     next();
 });
 
+// 工具：檢查包名是否合法（只允許英文、數字、底線，長度1-32）
+function isValidPackName(name) {
+    return /^[a-zA-Z0-9_]{1,32}$/.test(name);
+}
+
+// 工具：取得所有包名（.zip 檔案）
+function getAllPackNames() {
+    if (!fs.existsSync(uploadDir)) return [];
+    return fs.readdirSync(uploadDir)
+        .filter(f => f.endsWith('.zip'))
+        .map(f => f.replace(/\.zip$/, ''));
+}
+
 // 路由
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// 📁 下載與檢查
-app.get('/check-texture-pack', async (req, res) => {
-    try {
-        const texturePath = path.join(uploadDir, 'texture-pack.zip');
-        const hashFilePath = path.join(uploadDir, 'texture-pack.sha256');
-        if (fs.existsSync(texturePath)) {
-            const stats = fs.statSync(texturePath);
-            let sha256 = null;
-            if (fs.existsSync(hashFilePath)) {
-                sha256 = await fs.promises.readFile(hashFilePath, 'utf-8');
-            }
-            return res.json({
-                exists: true,
-                lastModified: stats.mtime,
-                size: stats.size,
-                sha256
-            });
-        }
-        res.json({ exists: false });
-    } catch (err) {
-        console.error('檢查錯誤:', err);
-        res.status(500).json({ error: '檢查檔案狀態時發生錯誤' });
-    }
+// 列出所有包名
+app.get('/list-packs', (req, res) => {
+    const packs = getAllPackNames();
+    res.json({ packs });
 });
 
-// 下載材質包路由
-app.get('/download-texture-pack', (req, res) => {
-    const texturePath = path.join(uploadDir, 'texture-pack.zip');
+// 查詢材質包狀態
+app.get('/check-texture-pack/:pack', async (req, res) => {
+    const pack = req.params.pack;
+    if (!isValidPackName(pack)) return res.status(400).json({ error: '包名格式錯誤' });
+    const texturePath = path.join(uploadDir, `${pack}.zip`);
+    const hashFilePath = path.join(uploadDir, `${pack}.sha1`);
     if (fs.existsSync(texturePath)) {
-        // 快取 1 分鐘
+        const stats = fs.statSync(texturePath);
+        let sha1 = null;
+        if (fs.existsSync(hashFilePath)) {
+            sha1 = await fs.promises.readFile(hashFilePath, 'utf-8');
+        }
+        return res.json({
+            exists: true,
+            lastModified: stats.mtime,
+            size: stats.size,
+            sha1
+        });
+    }
+    res.json({ exists: false });
+});
+
+// 下載材質包
+app.get('/download-texture-pack/:pack', (req, res) => {
+    const pack = req.params.pack;
+    if (!isValidPackName(pack)) return res.status(400).json({ error: '包名格式錯誤' });
+    const texturePath = path.join(uploadDir, `${pack}.zip`);
+    if (fs.existsSync(texturePath)) {
         res.setHeader('Cache-Control', 'public, max-age=60, must-revalidate');
-        return res.download(texturePath, 'minecraft-texture-pack.zip');
+        return res.download(texturePath, `${pack}.zip`);
     }
     res.status(404).json({ error: '找不到材質包檔案' });
 });
 
-// 🔑 密碼驗證 API（限次）
+// 密碼驗證 API
 app.post('/verify-password', express.json(), async (req, res) => {
     const ip = getClientIP(req);
     const now = Date.now();
     if (!authAttempts[ip]) authAttempts[ip] = { count: 0, blockedUntil: 0 };
     if (authAttempts[ip].blockedUntil > now) {
         const waitMin = Math.ceil((authAttempts[ip].blockedUntil - now) / 60000);
-        console.log(`[密碼驗證][BLOCKED] IP: ${ip}, 次數: ${authAttempts[ip].count}, 封鎖剩餘: ${waitMin} 分鐘`);
         return res.status(429).json({ error: `密碼錯誤次數過多，請於 ${waitMin} 分鐘後再試。` });
     }
-
     const { password } = req.body;
     if (!password) return res.status(400).json({ error: '請提供密碼' });
-
     const isValid = await bcrypt.compare(password, PASSWORD_HASH);
     if (!isValid) {
         authAttempts[ip].count += 1;
         if (authAttempts[ip].count >= MAX_ATTEMPTS) {
             authAttempts[ip].blockedUntil = now + BLOCK_TIME;
-            console.log(`[密碼驗證][BLOCK] IP: ${ip}, 達到上限，封鎖 30 分鐘`);
             return res.status(429).json({ error: `密碼錯誤次數過多，請於 ${BLOCK_TIME / 60000} 分鐘後再試。` });
         }
-        console.log(`[密碼驗證][FAIL] IP: ${ip}, 次數: ${authAttempts[ip].count}`);
         return res.status(401).json({ error: '密碼錯誤' });
     }
-
     delete authAttempts[ip];
-
-    console.log(`[密碼驗證][SUCCESS] IP: ${ip}, 驗證成功`);
     res.json({ message: '密碼正確' });
 });
 
-// 📤 上傳 API
-app.post('/upload', checkBlock, upload, async (req, res) => {
+// 上傳 API
+app.post('/upload/:pack', checkBlock, upload, async (req, res) => {
     const ip = getClientIP(req);
     const now = Date.now();
     if (!authAttempts[ip]) authAttempts[ip] = { count: 0, blockedUntil: 0 };
-
     const password = req.body.password;
     if (!password) return res.status(400).json({ error: '請提供密碼' });
-
     const isValid = await bcrypt.compare(password, PASSWORD_HASH);
     if (!isValid) {
         authAttempts[ip].count += 1;
@@ -154,11 +161,10 @@ app.post('/upload', checkBlock, upload, async (req, res) => {
         }
         return res.status(401).json({ error: '密碼錯誤' });
     }
-
     delete authAttempts[ip];
-
+    const pack = req.params.pack;
+    if (!isValidPackName(pack)) return res.status(400).json({ error: '包名格式錯誤，只允許英文、數字、底線' });
     if (!req.file) return res.status(400).json({ error: '請選擇要上傳的檔案' });
-
     const buffer = req.file.buffer;
     const mime = req.file.mimetype;
     if (
@@ -169,25 +175,21 @@ app.post('/upload', checkBlock, upload, async (req, res) => {
     ) {
         return res.status(400).json({ error: '請上傳正確的 ZIP 檔案' });
     }
-
     if (mime !== 'application/zip' && mime !== 'application/x-zip-compressed') {
         return res.status(400).json({ error: '只允許上傳 ZIP 檔案' });
     }
-
-    const finalPath = path.join(uploadDir, 'texture-pack.zip');
+    const finalPath = path.join(uploadDir, `${pack}.zip`);
     await fs.promises.writeFile(finalPath, buffer);
-
-    const hash = crypto.createHash('sha256').update(buffer).digest('hex');
-    await fs.promises.writeFile(path.join(uploadDir, 'texture-pack.sha256'), hash);
-
+    const hash = crypto.createHash('sha1').update(buffer).digest('hex');
+    await fs.promises.writeFile(path.join(uploadDir, `${pack}.sha1`), hash);
     res.json({
         message: '材質包上傳成功',
         filename: req.file.originalname,
-        sha256: hash
+        sha1: hash
     });
 });
 
-// 🛠️ Multer 錯誤處理
+// Multer 錯誤處理
 app.use((err, req, res, next) => {
     if (err instanceof multer.MulterError) {
         if (err.code === 'LIMIT_FILE_SIZE') {
